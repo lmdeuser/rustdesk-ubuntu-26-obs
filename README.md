@@ -14,7 +14,9 @@ Flutter, and native dependencies still need preparation and verification.
 `scripts/fetch_pub_archives.py` verifies hosted packages against upstream
 lockfile SHA-256 values. `scripts/fetch_pub_git.py` fetches pinned Git
 commits. These source downloads alone do not create a working offline Flutter
-build cache. Both helpers require Python 3 and PyYAML.
+build cache. `scripts/prepare_pub_cache.py` assembles these verified inputs
+into a candidate offline cache; offline resolution remains unverified. The
+helpers require Python 3 and PyYAML.
 
 `scripts/retention.py` can preview or remove old, explicitly marked local
 source sets. It is not connected to a publisher and does not prune OBS
