@@ -7,6 +7,10 @@ Run `python3 scripts/inspect_upstream.py` to inspect the latest official GitHub
 release and its Cargo features. Run `python3 -m unittest discover -s tests`
 for the local tests. No local compilation is involved.
 
+`scripts/archive_source.py` creates a source-only archive from a clean release
+checkout and its pinned submodule. It is not yet an offline build bundle: Rust,
+Flutter, and native dependencies still need preparation and verification.
+
 `scripts/retention.py` can preview or remove old, explicitly marked local
 source sets. It is not connected to a publisher and does not prune OBS
 revision history. Use an absolute dedicated cache path; the default is a dry
@@ -30,8 +34,9 @@ package's revision history is separate from its current source file list;
 removing old files does not prove historical source storage was removed.
 
 The OBS projects `home:dwolfF:rustdesk` and
-`home:dwolfF:rustdesk:staging` exist with publication disabled. Signing,
-GitHub synchronization, and the runner have not yet been verified. Do not
+`home:dwolfF:rustdesk:staging` exist with publication disabled. APT publication,
+GitHub synchronization from the runner, and the runner itself have not yet
+been verified. Do not
 enable an unattended publisher or installer until these prerequisites and the
 upstream build and runtime behavior are verified.
 
