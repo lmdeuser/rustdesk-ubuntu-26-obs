@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: rustdesk-build-probe
+Source: https://github.com/lmdeuser/rustdesk-ubuntu-26-obs
+
+Files: *
+Copyright: 2026 RustDesk Ubuntu OBS contributors
+License: GPL-3+
+ This work is distributed under the GNU General Public License, version 3
+ or later. On Debian-based systems, see /usr/share/common-licenses/GPL-3.

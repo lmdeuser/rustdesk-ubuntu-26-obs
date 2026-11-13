@@ -24,6 +24,9 @@ revision history. Use an absolute dedicated cache path; the default is a dry
 run, and `--apply` removes marked version directories beyond the newest two.
 Only use it when no other process is writing those source sets.
 
+The unpublished `packaging/probe` package checks selected Ubuntu build
+dependencies in OBS. It does not build RustDesk.
+
 ## Open engineering work
 
 The requested top-level `wayland` Cargo feature is absent in RustDesk 1.5.3.

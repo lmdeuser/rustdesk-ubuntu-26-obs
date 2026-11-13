@@ -1,0 +1,14 @@
+#!/usr/bin/make -f
+export TMPDIR := $(CURDIR)/debian/.build-tmp
+
+%:
+	mkdir -p $(TMPDIR)
+	dh $@
+
+override_dh_auto_build:
+	pkg-config --exists dbus-1 wayland-client libpipewire-0.3 libdrm gbm xkbcommon libva
+	rustc --version
+	cargo --version
+
+override_dh_auto_clean:
+	rm -rf $(TMPDIR)
