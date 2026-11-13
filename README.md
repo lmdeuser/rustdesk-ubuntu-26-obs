@@ -11,6 +11,11 @@ for the local tests. No local compilation is involved.
 checkout and its pinned submodule. It is not yet an offline build bundle: Rust,
 Flutter, and native dependencies still need preparation and verification.
 
+`scripts/fetch_pub_archives.py` verifies hosted packages against upstream
+lockfile SHA-256 values. `scripts/fetch_pub_git.py` fetches pinned Git
+commits. These source downloads alone do not create a working offline Flutter
+build cache. Both helpers require Python 3 and PyYAML.
+
 `scripts/retention.py` can preview or remove old, explicitly marked local
 source sets. It is not connected to a publisher and does not prune OBS
 revision history. Use an absolute dedicated cache path; the default is a dry
