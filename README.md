@@ -25,7 +25,9 @@ run, and `--apply` removes marked version directories beyond the newest two.
 Only use it when no other process is writing those source sets.
 
 The unpublished `packaging/probe` package checks selected Ubuntu build
-dependencies in OBS. It does not build RustDesk.
+dependencies in OBS. `packaging/offline-probe` checks offline Flutter
+resolution and selected FFmpeg codec availability. Neither probe builds
+RustDesk.
 
 ## Open engineering work
 

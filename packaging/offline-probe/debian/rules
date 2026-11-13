@@ -1,0 +1,18 @@
+#!/usr/bin/make -f
+export TMPDIR := $(CURDIR)/debian/.build-tmp
+export HOME := $(CURDIR)/debian/.home
+export PUB_CACHE := $(CURDIR)/pubcache
+export CI := true
+export FLUTTER_SUPPRESS_ANALYTICS := true
+
+%:
+	mkdir -p $(TMPDIR) $(HOME)
+	dh $@
+
+override_dh_auto_build:
+	ffmpeg -hide_banner -encoders 2>/dev/null | grep -q h264_nvenc
+	ffmpeg -hide_banner -decoders 2>/dev/null | grep -q h264_cuvid
+	cd flutter && $(CURDIR)/sdk/bin/flutter pub get --offline
+
+override_dh_auto_clean:
+	rm -rf $(TMPDIR) $(HOME)

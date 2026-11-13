@@ -1,0 +1,5 @@
+rustdesk-offline-probe (1.5.3-0probe1) unstable; urgency=medium
+
+  * Check offline dependency resolution inside OBS.
+
+ -- RustDesk Ubuntu OBS maintainers <noreply@example.invalid>  Fri, 13 Nov 2026 20:30:00 +0000

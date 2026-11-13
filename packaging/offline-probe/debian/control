@@ -1,0 +1,15 @@
+Source: rustdesk-offline-probe
+Section: devel
+Priority: optional
+Maintainer: RustDesk Ubuntu OBS maintainers <noreply@example.invalid>
+Build-Depends: debhelper-compat (= 13), git, ca-certificates, clang, cmake,
+ ninja-build, pkgconf, libgtk-3-dev, xz-utils, ffmpeg, libffmpeg-nvenc-dev,
+ libavcodec62, libavformat62
+Standards-Version: 4.7.2
+Rules-Requires-Root: no
+
+Package: rustdesk-offline-probe
+Architecture: all
+Description: RustDesk offline Flutter dependency probe
+ This unpublished staging package checks offline Flutter dependency
+ resolution. It does not build or contain the RustDesk application.
