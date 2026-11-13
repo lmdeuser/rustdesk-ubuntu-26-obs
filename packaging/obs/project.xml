@@ -1,0 +1,10 @@
+<project name="home:dwolfF:rustdesk">
+  <title>RustDesk for Ubuntu 26.04</title>
+  <description>Independent packaging project. Publication is disabled pending source build and runtime verification.</description>
+  <publish><disable/></publish>
+  <repository name="xUbuntu_26.04">
+    <path project="Ubuntu:26.04" repository="update"/>
+    <path project="Ubuntu:26.04" repository="universe-update"/>
+    <arch>x86_64</arch>
+  </repository>
+</project>

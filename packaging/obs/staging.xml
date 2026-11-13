@@ -1,0 +1,10 @@
+<project name="home:dwolfF:rustdesk:staging">
+  <title>RustDesk for Ubuntu 26.04 staging</title>
+  <description>Unpublished source build candidates for verification.</description>
+  <publish><disable/></publish>
+  <repository name="xUbuntu_26.04">
+    <path project="Ubuntu:26.04" repository="update"/>
+    <path project="Ubuntu:26.04" repository="universe-update"/>
+    <arch>x86_64</arch>
+  </repository>
+</project>

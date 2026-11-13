@@ -1,0 +1,11 @@
+[Unit]
+Description=Check for RustDesk package updates
+
+[Timer]
+OnBootSec=30min
+OnUnitActiveSec=6h
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
