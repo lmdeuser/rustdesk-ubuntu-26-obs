@@ -50,8 +50,9 @@ def fetch(cache, entry):
         run('--git-dir', str(target), 'update-ref', 'refs/heads/locked', commit)
         return
     temporary = cache / (target.name + '.part')
-    temporary.mkdir(mode=0o700)
+    temporary.mkdir(mode=0o755)
     try:
+        temporary.chmod(0o755)
         run('init', '--bare', str(temporary))
         run('--git-dir', str(temporary), 'fetch', '--no-tags', '--depth=1', url, commit)
         actual = run('--git-dir', str(temporary), 'rev-parse', '--verify', 'FETCH_HEAD^{commit}')

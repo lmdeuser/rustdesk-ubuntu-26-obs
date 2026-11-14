@@ -1,0 +1,8 @@
+rustdesk (1.5.3-0ubuntu1~obs1) resolute; urgency=medium
+
+  * Initial Ubuntu 26.04 LTS (Resolute Raccoon, amd64) OBS build for RustDesk 1.5.3.
+  * Enable native Wayland support (PipeWire, XDG portals, DRM/KMS via libdrmtap,
+    display wake via drm-wake, Wayland shortcuts inhibit).
+  * Enable hardware-accelerated video codecs against system FFmpeg 8 (libva/vdpau/nvenc).
+
+ -- RustDesk Ubuntu 26.04 Packaging <noreply@github.com>  Sat, 14 Nov 2026 10:30:00 +0000

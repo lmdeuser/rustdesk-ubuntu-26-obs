@@ -27,6 +27,31 @@ class RetentionTests(unittest.TestCase):
             self.assertTrue((root / '0.2.0').is_symlink())
             self.assertEqual(retention.prune(root, apply=True), [])
 
+    def test_protected_version_is_never_pruned(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for version in ('1.5.1', '1.5.2', '1.5.3'):
+                folder = root / version
+                folder.mkdir()
+                (folder / '.rustdesk-source-set').write_text(retention.MARKER)
+            removed = retention.prune(root, apply=True, keep=1, protect=('1.5.1',))
+            self.assertEqual([p.name for p in removed], ['1.5.2'])
+            self.assertTrue((root / '1.5.1').exists())
+            self.assertTrue((root / '1.5.3').exists())
+
+    def test_prune_obs_package_files_keeps_active_set(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            co = Path(temporary)
+            (co / '.osc').mkdir()
+            active = ['rustdesk_1.5.3.orig.tar.gz', 'rustdesk_1.5.3-0ubuntu1~obs1.dsc']
+            stale = ['rustdesk_1.5.2.orig.tar.gz', 'rustdesk_1.5.2-0ubuntu1~obs1.dsc']
+            for name in active + stale + ['README.local']:
+                (co / name).write_text('x')
+            removed = retention.prune_obs_package_files(co, active, apply=True)
+            self.assertEqual(sorted(p.name for p in removed), sorted(stale))
+            self.assertTrue((co / 'README.local').exists())
+            self.assertTrue((co / 'rustdesk_1.5.3.orig.tar.gz').exists())
+
     def test_rejects_relative_root(self):
         with self.assertRaises(ValueError):
             retention.prune(Path('.'))

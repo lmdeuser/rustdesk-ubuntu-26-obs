@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily RustDesk Upstream Release Check and OBS Pipeline Timer
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=6h
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

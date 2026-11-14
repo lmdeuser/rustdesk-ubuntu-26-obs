@@ -1,10 +1,18 @@
 <project name="home:dwolfF:rustdesk">
   <title>RustDesk for Ubuntu 26.04</title>
-  <description>Independent packaging project. Publication is disabled pending source build and runtime verification.</description>
-  <publish><disable/></publish>
+  <description>Independent packaging project for RustDesk on Ubuntu 26.04 LTS (amd64) with Wayland, PipeWire, XDG portals, DRM/KMS, and hardware codec support.</description>
+  <person userid="dwolfF" role="maintainer"/>
+  <build>
+    <disable/>
+  </build>
+  <publish>
+    <enable/>
+  </publish>
   <repository name="xUbuntu_26.04">
     <path project="Ubuntu:26.04" repository="update"/>
     <path project="Ubuntu:26.04" repository="universe-update"/>
+    <path project="Ubuntu:26.04" repository="standard"/>
+    <path project="Ubuntu:26.04" repository="universe"/>
     <arch>x86_64</arch>
   </repository>
 </project>

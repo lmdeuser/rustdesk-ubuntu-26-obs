@@ -1,0 +1,13 @@
+[Unit]
+Description=RustDesk Upstream Watcher, OBS Builder, and APT Promoter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=TMPDIR=/var/tmp/rustdesk
+WorkingDirectory=/opt/rustdesk-ubuntu-26-obs
+ExecStart=/usr/bin/python3 -B /opt/rustdesk-ubuntu-26-obs/scripts/obs_publisher.py --work-root /var/tmp/rustdesk
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=3600

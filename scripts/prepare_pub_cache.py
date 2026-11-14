@@ -44,7 +44,8 @@ def prepare(lockfile, archives, git_sources, output):
         hosted = fetch_pub_archives.package_records(lock)
     with lockfile.open(encoding='utf-8') as lock:
         git_packages = fetch_pub_git.records(lock)
-    output.mkdir(mode=0o700)
+    output.mkdir(mode=0o755)
+    output.chmod(0o755)
     try:
         hosted_dir = output / 'hosted/pub.dev'
         hash_dir = output / 'hosted-hashes/pub.dev'
@@ -71,6 +72,7 @@ def prepare(lockfile, archives, git_sources, output):
             repo_key = hashlib.sha1(url.encode('utf-8')).hexdigest()
             bare = git_cache / f'{repo_name}-{repo_key}'
             shutil.copytree(source, bare, symlinks=False)
+            bare.chmod(0o755)
             revision = output / 'git' / f'{repo_name}-{commit}'
             fetch_pub_git.run('-c', 'core.logAllRefUpdates=false', 'clone', '--no-checkout', '--no-hardlinks', '--', str(bare), str(revision))
             fetch_pub_git.run('-C', str(revision), '-c', 'core.logAllRefUpdates=false', 'checkout', '--detach', commit)

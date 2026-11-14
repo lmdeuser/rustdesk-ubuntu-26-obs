@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Helper script documenting and invoking the Ubuntu 26.04 multi-tarball
+# Debian package build inside an unpacked 3.0 (quilt) source tree or OBS root.
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+WORK_DIR="${1:-$PWD}"
+
+cd "$WORK_DIR"
+
+for required_dir in debian sdk pubcache vendor; do
+    if [[ ! -d "$required_dir" ]]; then
+        echo "Missing required build directory: $required_dir in $WORK_DIR" >&2
+        exit 1
+    fi
+done
+
+if [[ ! -d "$WORK_DIR/debian" && -d "$ROOT_DIR/packaging/debian" ]]; then
+    cp -a "$ROOT_DIR/packaging/debian" "$WORK_DIR/debian"
+fi
+
+chmod +x "$WORK_DIR/debian/rules"
+exec dpkg-buildpackage -us -uc

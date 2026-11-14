@@ -1,0 +1,2 @@
+PublishFlags: nofailedpackages
+Prefer: libavcodec62 libavfilter11 libavformat62 libsdl2-2.0-0

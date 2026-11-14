@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove|purge)
+        rm -f /usr/share/rustdesk/files/polkit/com.rustdesk.RustDesk.policy || true
+        rm -f /etc/pam.d/rustdesk || true
+        if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+            systemctl daemon-reload || true
+        fi
+        ;;
+esac
+
+if [ "$1" = "purge" ]; then
+    rm -rf /var/log/rustdesk || true
+fi
+
+#DEBHELPER#
+
+exit 0

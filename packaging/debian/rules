@@ -1,0 +1,154 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all optimize=-lto
+export CFLAGS := $(filter-out -flto=auto -ffat-lto-objects,$(CFLAGS))
+export CXXFLAGS := $(strip $(filter-out -flto=auto -ffat-lto-objects,$(CXXFLAGS)) -include cstdint)
+export LDFLAGS := $(filter-out -flto=auto -ffat-lto-objects,$(LDFLAGS))
+
+export TMPDIR := $(CURDIR)/debian/.build-tmp
+export HOME := $(CURDIR)/debian/.home
+export CARGO_HOME := $(CURDIR)/debian/.cargo
+export PUB_CACHE := $(CURDIR)/pubcache
+export FLUTTER_ROOT := $(CURDIR)/sdk
+export CI := true
+export BOT := true
+export FLUTTER_SUPPRESS_ANALYTICS := true
+export CARGO_INCREMENTAL := 0
+export CARGO_NET_OFFLINE := true
+export RUSTDESK_SYSTEM_FFMPEG := 1
+export PKG_CONFIG_PATH := $(CURDIR)/debian/.pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig
+export PATH := $(CURDIR)/sdk/bin:$(CURDIR)/sdk/bin/cache/dart-sdk/bin:$(CURDIR)/debian/.cargo/bin:$(PATH)
+
+%:
+	dh $@
+
+override_dh_clean:
+	rm -rf \
+		$(CURDIR)/debian/.build-tmp \
+		$(CURDIR)/debian/.home \
+		$(CURDIR)/debian/.cargo \
+		$(CURDIR)/debian/.pkgconfig \
+		$(CURDIR)/.cargo \
+		$(CURDIR)/build-drmtap \
+		$(CURDIR)/target \
+		$(CURDIR)/flutter/build
+	dh_clean -X.orig -X.bak -X.rej -X~
+
+override_dh_auto_configure:
+	@true
+
+override_dh_auto_build:
+	mkdir -p \
+		"$(TMPDIR)" \
+		"$(HOME)" \
+		"$(CARGO_HOME)/bin" \
+		"$(CURDIR)/debian/.pkgconfig" \
+		"$(CURDIR)/.cargo" \
+		"$(CURDIR)/flutter/macos/Runner" \
+		"$(CURDIR)/target/release"
+	chmod -R u+rwX "$(CURDIR)/pubcache" "$(CURDIR)/sdk" "$(CURDIR)/vendor"
+	git config --global --add safe.directory "*"
+	printf '%s:' "$$(git -C '$(CURDIR)/sdk' rev-parse HEAD)" > '$(CURDIR)/sdk/bin/cache/flutter_tools.stamp'
+	touch '$(CURDIR)/sdk/bin/cache/flutter_tools.stamp' '$(CURDIR)/sdk/bin/cache/flutter_tools.snapshot'
+	mkdir -p '$(CURDIR)/sdk/packages/flutter_tools/.dart_tool'
+	printf '{"configVersion":2,"packages":[{"name":"flutter_tools","rootUri":"../","packageUri":"lib/","languageVersion":"3.2"}]}\n' > '$(CURDIR)/sdk/packages/flutter_tools/.dart_tool/package_config.json'
+	printf 'Name: libyuv\nDescription: YUV conversion library\nVersion: 0.0.0\nLibs: -lyuv\nCflags: -I/usr/include\n' > '$(CURDIR)/debian/.pkgconfig/libyuv.pc'
+	cp '$(CURDIR)/vendor/vendor-config.toml' '$(CURDIR)/.cargo/config.toml'
+	if [ -f '$(CURDIR)/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff' ]; then \
+		patch -p1 -N -d '$(CURDIR)/sdk' < '$(CURDIR)/.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff' || true; \
+		touch '$(CURDIR)/sdk/bin/cache/flutter_tools.stamp' '$(CURDIR)/sdk/bin/cache/flutter_tools.snapshot'; \
+	fi
+	cd '$(CURDIR)/flutter' && '$(CURDIR)/sdk/bin/flutter' --no-version-check --suppress-analytics config --enable-linux-desktop
+	cd '$(CURDIR)/flutter' && '$(CURDIR)/sdk/bin/flutter' --no-version-check --suppress-analytics pub get --offline -v
+	for m in \
+		'$(CURDIR)/vendor/tool-sources/cargo-expand-1.0.95/Cargo.toml' \
+		'$(CURDIR)/vendor/tool-sources/flutter_rust_bridge_codegen-1.80.1/Cargo.toml'; do \
+		grep -q '^\[workspace\]' "$$m" || printf '\n[workspace]\n' >> "$$m"; \
+	done
+	cargo install --offline --locked \
+		--path '$(CURDIR)/vendor/tool-sources/cargo-expand-1.0.95' \
+		--root '$(CARGO_HOME)' \
+		--config 'source.crates-io.replace-with="vendored-sources"' \
+		--config 'source.vendored-sources.directory="$(CURDIR)/vendor/expand-vendor"'
+	cargo install --offline --locked \
+		--path '$(CURDIR)/vendor/tool-sources/flutter_rust_bridge_codegen-1.80.1' \
+		--root '$(CARGO_HOME)' \
+		--config 'source.crates-io.replace-with="vendored-sources"' \
+		--config 'source.vendored-sources.directory="$(CURDIR)/vendor/bridge-vendor"'
+	LLVM_ARG=""; \
+	if command -v llvm-config >/dev/null 2>&1; then \
+		LLVM_ARG="--llvm-path $$(llvm-config --prefix)"; \
+	fi; \
+	'$(CARGO_HOME)/bin/flutter_rust_bridge_codegen' \
+		--rust-input ./src/flutter_ffi.rs \
+		--dart-output ./flutter/lib/generated_bridge.dart \
+		--c-output ./flutter/macos/Runner/bridge_generated.h \
+		$$LLVM_ARG
+	sed -i 's/ffi.NativeFunction<ffi.Bool Function(DartPort/ffi.NativeFunction<ffi.Uint8 Function(DartPort/g' \
+		'$(CURDIR)/flutter/lib/generated_bridge.dart'
+	meson setup '$(CURDIR)/build-drmtap' '$(CURDIR)/vendor/libdrmtap' \
+		--buildtype=release -Dhelper=disabled -Degl=enabled
+	meson compile -C '$(CURDIR)/build-drmtap' drmtap:shared_library
+	LIBDRMTAP_SO="$$(find '$(CURDIR)/build-drmtap' -maxdepth 1 -type f -name 'libdrmtap.so.*.*' | head -n 1)"; \
+	test -n "$$LIBDRMTAP_SO"; \
+	grep -qF 'libEGL.so.1' "$$LIBDRMTAP_SO"; \
+	grep -qF 'eglCreateImageKHR' "$$LIBDRMTAP_SO"; \
+	! grep -qF 'socketpair' "$$LIBDRMTAP_SO"; \
+	! grep -qF '/usr/libexec/drmtap-helper' "$$LIBDRMTAP_SO"
+	sed -i 's/crate-type = \["cdylib", "staticlib", "rlib"\]/crate-type = ["cdylib"]/' '$(CURDIR)/Cargo.toml'
+	cargo build --offline --locked --lib --release \
+		--features flutter,hwcodec,unix-file-copy-paste,linux-pkg-config,drm,drm-wake
+	test -f '$(CURDIR)/target/release/liblibrustdesk.so'
+	grep -qF '/usr/lib/rustdesk/libdrmtap.so.0' '$(CURDIR)/target/release/liblibrustdesk.so'
+	grep -qF 'enable-drm-display-wake' '$(CURDIR)/target/release/liblibrustdesk.so'
+	sed -i 's/-Wall -Werror/-Wall -Wno-error/g' '$(CURDIR)/flutter/linux/CMakeLists.txt'
+	cd '$(CURDIR)/flutter' && '$(CURDIR)/sdk/bin/flutter' --no-version-check --suppress-analytics build linux --release --no-pub -v
+	if [ -f '$(CURDIR)/flutter/build/linux/x64/release/bundle/lib/librustdesk.so' ]; then \
+		patchelf --remove-rpath '$(CURDIR)/flutter/build/linux/x64/release/bundle/lib/librustdesk.so' || true; \
+	fi
+
+override_dh_auto_install:
+	mkdir -p \
+		'$(CURDIR)/debian/rustdesk/usr/share/rustdesk/files/systemd' \
+		'$(CURDIR)/debian/rustdesk/usr/bin' \
+		'$(CURDIR)/debian/rustdesk/usr/lib/rustdesk' \
+		'$(CURDIR)/debian/rustdesk/usr/lib/systemd/system' \
+		'$(CURDIR)/debian/rustdesk/usr/share/applications' \
+		'$(CURDIR)/debian/rustdesk/usr/share/polkit-1/actions' \
+		'$(CURDIR)/debian/rustdesk/usr/share/icons/hicolor/32x32/apps' \
+		'$(CURDIR)/debian/rustdesk/usr/share/icons/hicolor/128x128/apps' \
+		'$(CURDIR)/debian/rustdesk/usr/share/icons/hicolor/256x256/apps' \
+		'$(CURDIR)/debian/rustdesk/usr/share/icons/hicolor/scalable/apps'
+	cp -a '$(CURDIR)/flutter/build/linux/x64/release/bundle/.' '$(CURDIR)/debian/rustdesk/usr/share/rustdesk/'
+	chmod 0755 '$(CURDIR)/debian/rustdesk/usr/share/rustdesk/rustdesk'
+	ln -sf ../share/rustdesk/rustdesk '$(CURDIR)/debian/rustdesk/usr/bin/rustdesk'
+	LIBDRMTAP_SO="$$(find '$(CURDIR)/build-drmtap' -maxdepth 1 -type f -name 'libdrmtap.so.*.*' | head -n 1)"; \
+	test -n "$$LIBDRMTAP_SO"; \
+	SO_BASE="$$(basename "$$LIBDRMTAP_SO")"; \
+	install -m 0755 "$$LIBDRMTAP_SO" "$(CURDIR)/debian/rustdesk/usr/lib/rustdesk/$$SO_BASE"; \
+	ln -sf "$$SO_BASE" '$(CURDIR)/debian/rustdesk/usr/lib/rustdesk/libdrmtap.so.0'; \
+	ln -sf "$$SO_BASE" '$(CURDIR)/debian/rustdesk/usr/lib/rustdesk/libdrmtap.so'
+	install -m 0644 '$(CURDIR)/res/rustdesk.desktop' '$(CURDIR)/res/rustdesk-link.desktop' \
+		'$(CURDIR)/debian/rustdesk/usr/share/applications/'
+	install -m 0644 '$(CURDIR)/res/32x32.png' '$(CURDIR)/debian/rustdesk/usr/share/icons/hicolor/32x32/apps/rustdesk.png'
+	install -m 0644 '$(CURDIR)/res/128x128.png' '$(CURDIR)/debian/rustdesk/usr/share/icons/hicolor/128x128/apps/rustdesk.png'
+	install -m 0644 '$(CURDIR)/res/128x128@2x.png' '$(CURDIR)/debian/rustdesk/usr/share/icons/hicolor/256x256/apps/rustdesk.png'
+	install -m 0644 '$(CURDIR)/res/scalable.svg' '$(CURDIR)/debian/rustdesk/usr/share/icons/hicolor/scalable/apps/rustdesk.svg'
+	printf '#!/bin/sh\n' > '$(CURDIR)/debian/rustdesk/usr/share/rustdesk/files/polkit'
+	chmod 0755 '$(CURDIR)/debian/rustdesk/usr/share/rustdesk/files/polkit'
+	install -m 0644 '$(CURDIR)/res/rustdesk.service' '$(CURDIR)/debian/rustdesk/usr/share/rustdesk/files/systemd/rustdesk.service'
+	sed 's|ExecStop=pkill|ExecStop=/usr/bin/pkill|g' '$(CURDIR)/res/rustdesk.service' > '$(CURDIR)/debian/rustdesk/usr/lib/systemd/system/rustdesk.service'
+	chmod 0644 '$(CURDIR)/debian/rustdesk/usr/lib/systemd/system/rustdesk.service'
+
+override_dh_strip:
+	dh_strip -Xlibapp.so -Xlibflutter_linux_gtk.so
+
+override_dh_dwz:
+	@true
+
+override_dh_installsystemd:
+	@true
+
+override_dh_shlibdeps:
+	dh_shlibdeps -l$(CURDIR)/debian/rustdesk/usr/share/rustdesk/lib:$(CURDIR)/debian/rustdesk/usr/lib/rustdesk

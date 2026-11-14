@@ -26,12 +26,14 @@ for unit in rustdesk-autoupdate.service rustdesk-autoupdate.timer; do
     [[ -f $repository_dir/systemd/$unit ]] || { echo "Missing unit: $unit" >&2; exit 1; }
 done
 
+mkdir -p /var/cache
 workdir=$(mktemp -d /var/cache/rustdesk-obs-install.XXXXXXXX)
 trap 'rm -rf -- "$workdir"' EXIT
 chmod 700 "$workdir"
 export GNUPGHOME="$workdir/gnupg"
 mkdir -m 700 "$GNUPGHOME"
-# Verify publication and key before changing the system's APT configuration.
+
+# Verify publication and key fingerprint before modifying APT sources.
 curl --fail --silent --show-error --location "$repository/Release" -o "$workdir/Release"
 curl --fail --silent --show-error --location "$repository/Release.key" -o "$workdir/key.asc"
 gpg --batch --with-colons --show-keys "$workdir/key.asc" > "$workdir/key-info"
@@ -41,14 +43,34 @@ if [[ $key_count != 1 || $fingerprint != "$expected_fingerprint" ]]; then
     echo 'OBS signing key fingerprint does not match.' >&2
     exit 1
 fi
+
 gpg --batch --yes --dearmor --output "$workdir/rustdesk-obs.gpg" "$workdir/key.asc"
-install -d -m 0755 /etc/apt/keyrings
-install -m 0644 "$workdir/rustdesk-obs.gpg" /etc/apt/keyrings/rustdesk-obs.gpg
-printf 'deb [signed-by=/etc/apt/keyrings/rustdesk-obs.gpg] %s/ /\n' "$repository" > /etc/apt/sources.list.d/rustdesk-obs.list
+install -d -m 0755 /usr/share/keyrings
+install -m 0644 "$workdir/rustdesk-obs.gpg" /usr/share/keyrings/rustdesk-obs.gpg
+rm -f /etc/apt/sources.list.d/rustdesk-obs.list
+
+cat > /etc/apt/sources.list.d/rustdesk-obs.sources <<EOF
+Types: deb
+URIs: ${repository}/
+Suites: /
+Signed-By: /usr/share/keyrings/rustdesk-obs.gpg
+EOF
+
 export DEBIAN_FRONTEND=noninteractive
 apt-get -o Dpkg::Lock::Timeout=120 update
-apt-get -o Dpkg::Lock::Timeout=120 install -y rustdesk
+apt-get -o Dpkg::Lock::Timeout=120 install -y \
+    rustdesk \
+    pipewire \
+    gstreamer1.0-pipewire \
+    xdg-desktop-portal \
+    mesa-va-drivers
+
+# Optional Intel VA-API driver when available in Ubuntu repositories.
+apt-get -o Dpkg::Lock::Timeout=120 install -y intel-media-va-driver || true
+
 install -m 0644 "$repository_dir/systemd/rustdesk-autoupdate.service" /etc/systemd/system/
 install -m 0644 "$repository_dir/systemd/rustdesk-autoupdate.timer" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now rustdesk-autoupdate.timer
+systemctl enable --now rustdesk.service || true
+systemctl status --no-pager rustdesk.service || true

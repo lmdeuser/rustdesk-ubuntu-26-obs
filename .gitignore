@@ -18,3 +18,8 @@ cache/
 *.dsc
 *.changes
 *.buildinfo
+.osc/
+packaging/debian/files
+packaging/debian/.debhelper/
+packaging/debian/*.substvars
+packaging/debian/rustdesk/
