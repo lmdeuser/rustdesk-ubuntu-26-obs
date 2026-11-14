@@ -53,6 +53,7 @@ cat > /etc/apt/sources.list.d/rustdesk-obs.sources <<EOF
 Types: deb
 URIs: ${repository}/
 Suites: /
+Architectures: amd64
 Signed-By: /usr/share/keyrings/rustdesk-obs.gpg
 EOF
 

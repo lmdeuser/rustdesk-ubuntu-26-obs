@@ -8,6 +8,46 @@ Upstream `rustdesk/rustdesk` is treated strictly as read-only. All compilation
 takes place inside OBS (`home:dwolfF:rustdesk:staging` before promotion to
 `home:dwolfF:rustdesk`); no local compilation of RustDesk binaries is performed.
 
+## Quick Install (Ubuntu 26.04 LTS, `amd64`)
+
+Add the signed OBS APT repository and install `rustdesk`:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y curl gpg ca-certificates
+sudo install -d -m 0755 /usr/share/keyrings
+curl -fsSL https://download.opensuse.org/repositories/home:/dwolfF:/rustdesk/xUbuntu_26.04/Release.key \
+  | sudo gpg --dearmor --yes -o /usr/share/keyrings/rustdesk-obs.gpg
+sudo chmod 0644 /usr/share/keyrings/rustdesk-obs.gpg
+sudo tee /etc/apt/sources.list.d/rustdesk-obs.sources >/dev/null <<'EOF'
+Types: deb
+URIs: https://download.opensuse.org/repositories/home:/dwolfF:/rustdesk/xUbuntu_26.04/
+Suites: /
+Architectures: amd64
+Signed-By: /usr/share/keyrings/rustdesk-obs.gpg
+EOF
+sudo apt-get update
+sudo apt-get install -y rustdesk
+```
+
+Verify the installed signing key fingerprint if desired (`home:dwolfF OBS Project`, expected `C106E46DE7578257F4CD62C96AE35907289D3BDC`):
+
+```bash
+gpg --show-keys /usr/share/keyrings/rustdesk-obs.gpg
+```
+
+Enable the background service if you need unattended or login-screen access (the package's `postinst` script already enables `rustdesk.service` by default when systemd is active):
+
+```bash
+sudo systemctl enable --now rustdesk.service
+```
+
+To also configure automatic unattended updates via systemd timer from a clone of this repository:
+
+```bash
+sudo ./scripts/install-client.sh
+```
+
 ## Target Capabilities
 
 - **Target platform:** Ubuntu 26.04 LTS (Resolute Raccoon), `amd64` only.
@@ -52,22 +92,6 @@ takes place inside OBS (`home:dwolfF:rustdesk:staging` before promotion to
 - `tests/` — Standard-library unit tests covering upstream inspection, source
   archiving, offline cache verification, retention pruning, and OBS publisher
   orchestration.
-
-## Client Installation (Ubuntu 26.04 LTS, `amd64`)
-
-Run as root on an Ubuntu 26.04 `amd64` workstation or desktop:
-
-```bash
-sudo ./scripts/install-client.sh
-```
-
-The installer validates `/etc/os-release` (`ubuntu` `26.04`) and architecture
-(`amd64`), verifies the OBS repository key fingerprint
-`C106E46DE7578257F4CD62C96AE35907289D3BDC`, installs the keyring into
-`/usr/share/keyrings/rustdesk-obs.gpg`, configures
-`/etc/apt/sources.list.d/rustdesk-obs.sources`, installs `rustdesk` together
-with PipeWire/portal/VA-API runtime packages, and enables
-`rustdesk-autoupdate.timer`.
 
 ## Automation Runner Usage
 
